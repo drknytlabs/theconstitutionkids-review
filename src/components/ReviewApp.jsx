@@ -111,57 +111,69 @@ export default function ReviewApp() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-white p-6">
-      <Card className="w-full max-w-2xl shadow-lg border border-gray-200">
-        <CardContent className="space-y-6">
-          <h1 className="text-3xl font-bold text-center text-gray-800">Leave a Review</h1>
-          {submitted ? (
-            <p className="text-green-600 text-center">Thank you for your review!</p>
-          ) : (
-            <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
-              <div className="space-y-4">
-                <Input placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} required />
-                <Input placeholder="Contact info (email or phone, optional)" value={contact} onChange={(e) => setContact(e.target.value)} />
-                <Input placeholder="Social media or website (optional)" value={social} onChange={(e) => setSocial(e.target.value)} />
-              </div>
+      <form
+        className="w-full max-w-2xl bg-white border border-gray-200 shadow-xl rounded-lg p-8 space-y-6"
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleSubmit();
+        }}
+      >
+        <h1 className="text-3xl font-bold text-center text-gray-800">Leave a Review</h1>
 
-              <Textarea placeholder="Write your review here... (max 500 chars)" rows={6} maxLength={500} value={review} onChange={(e) => setReview(e.target.value)} required />
+        {submitted ? (
+          <p className="text-green-600 text-center">Thank you for your review!</p>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} required />
+              <Input placeholder="Contact (email or phone)" value={contact} onChange={(e) => setContact(e.target.value)} />
+              <Input placeholder="Social media / website" value={social} onChange={(e) => setSocial(e.target.value)} />
+            </div>
 
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">Record a short video (optional):</label>
-                <video ref={videoRef} autoPlay muted playsInline className="w-full max-h-64 border rounded" />
+            <Textarea
+              placeholder="Write your review here... (max 500 chars)"
+              rows={6}
+              maxLength={500}
+              value={review}
+              onChange={(e) => setReview(e.target.value)}
+              required
+            />
+
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Video (optional):</label>
+              <video ref={videoRef} autoPlay muted playsInline className="w-full max-h-64 border rounded" />
+              <div className="flex gap-2">
                 {!recording ? (
-                  <Button type="button" onClick={startRecording}>🎥 Start Recording</Button>
+                  <Button type="button" onClick={startRecording}>🎥 Start</Button>
                 ) : (
-                  <Button type="button" onClick={stopRecording}>⏹️ Stop Recording</Button>
+                  <Button type="button" onClick={stopRecording}>⏹️ Stop</Button>
                 )}
               </div>
+            </div>
 
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">Upload a document (PDF/DOC):</label>
-                <Input type="file" accept=".pdf,.doc,.docx" onChange={(e) => setDocumentFile(e.target.files[0])} />
-              </div>
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Upload document (PDF/DOC):</label>
+              <Input type="file" accept=".pdf,.doc,.docx" onChange={(e) => setDocumentFile(e.target.files[0])} />
+            </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="consent" checked={consent} onCheckedChange={() => setConsent(!consent)} />
-                  <label htmlFor="consent" className="text-sm text-gray-700">I give permission to share this review (including video)</label>
-                </div>
+            <div className="flex items-start gap-2">
+              <Checkbox id="consent" checked={consent} onCheckedChange={() => setConsent(!consent)} />
+              <label htmlFor="consent" className="text-sm text-gray-700">I give permission to share this review publicly</label>
+            </div>
 
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="privateSubmit" checked={privateSubmit} onCheckedChange={() => setPrivateSubmit(!privateSubmit)} />
-                  <label htmlFor="privateSubmit" className="text-sm text-gray-700">Only send to Gary (keep private)</label>
-                </div>
-              </div>
+            <div className="flex items-start gap-2">
+              <Checkbox id="privateSubmit" checked={privateSubmit} onCheckedChange={() => setPrivateSubmit(!privateSubmit)} />
+              <label htmlFor="privateSubmit" className="text-sm text-gray-700">Only send to Gary (not public)</label>
+            </div>
 
-              <div className="text-xs text-gray-500">{location}</div>
+            <div className="text-xs text-gray-500 italic">{location}</div>
 
-              <Button className="w-full" type="submit" disabled={!review || !name || !consent}>
-                Submit Review
-              </Button>
-            </form>
-          )}
-        </CardContent>
-      </Card>
+            <Button className="w-full" type="submit" disabled={!review || !name || !consent}>
+              Submit Review
+            </Button>
+          </>
+        )}
+      </form>
     </div>
   );
 }
