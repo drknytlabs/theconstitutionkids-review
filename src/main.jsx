@@ -1,21 +1,10 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import ReviewApp from './components/ReviewApp.jsx';
-import '../styles/global.css';
-import { Toaster } from 'react-hot-toast';
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+import './index.css'; // ✅ must be present
 
-function App() {
-  return (
-    <>
-      <Toaster position="top-right" />
-      {/* your routes or components here */}
-    </>
-  );
-}
-
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <ReviewApp />
-  </StrictMode>,
-)
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);

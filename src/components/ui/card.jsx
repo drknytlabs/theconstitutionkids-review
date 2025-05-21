@@ -1,11 +1,15 @@
-export const Card = ({ children, className = "" }) => (
-  <div className={`rounded-lg border bg-background text-foreground shadow-sm ${className}`}>
-    {children}
-  </div>
-);
+export function Card({ children, className = "", ...props }) {
+  return (
+    <div className={`bg-white shadow-md rounded-lg p-6 ${className}`} {...props}>
+      {children}
+    </div>
+  );
+}
 
-export const CardContent = ({ children, className = "" }) => (
-  <div className={`p-6 pt-0 ${className}`}>
-    {children}
-  </div>
-);
+export function CardContent({ children, className = "", ...props }) {
+  return (
+    <div className={`mt-4 ${className}`} {...props}>
+      {children}
+    </div>
+  );
+}

@@ -1,29 +1,30 @@
 import { useState, useRef, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import toast from "react-hot-toast";
 
 export default function ReviewApp() {
-  const [review, setReview] = useState("");
   const [name, setName] = useState("");
+  const [review, setReview] = useState("");
   const [contact, setContact] = useState("");
   const [social, setSocial] = useState("");
   const [location, setLocation] = useState("");
-  const [documentFile, setDocumentFile] = useState(null);
-  const [privateSubmit, setPrivateSubmit] = useState(false);
   const [consent, setConsent] = useState(false);
+  const [privateSubmit, setPrivateSubmit] = useState(false);
+  const [documentFile, setDocumentFile] = useState(null);
+  const [videoBlob, setVideoBlob] = useState(null);
   const [videoUrl, setVideoUrl] = useState("");
-  const [submitted, setSubmitted] = useState(false);
   const [recording, setRecording] = useState(false);
-  const [, setMediaStream] = useState(null);
-  const mediaRecorderRef = useRef(null);
+  const [pendingApproval, setPendingApproval] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
   const videoRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const chunksRef = useRef([]);
 
   useEffect(() => {
-    document.documentElement.classList.remove("dark");
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude, longitude } = pos.coords;
@@ -35,145 +36,141 @@ export default function ReviewApp() {
   }, []);
 
   const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    if (videoRef.current) {
       videoRef.current.srcObject = stream;
-      setMediaStream(stream);
-      const mediaRecorder = new MediaRecorder(stream);
-      const chunks = [];
-
-      mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
-      mediaRecorder.onstop = async () => {
-        const blob = new Blob(chunks, { type: "video/webm" });
-        const formData = new FormData();
-        formData.append("file", blob);
-        formData.append("name", name);
-        const response = await fetch("/api/upload-video", {
-          method: "POST",
-          body: formData,
-        });
-        const data = await response.json();
-        setVideoUrl(data.url);
-        setMediaStream(null);
-        toast.success("Video uploaded");
-      };
-
-      mediaRecorder.start();
-      mediaRecorderRef.current = mediaRecorder;
-      setRecording(true);
-    } catch (error) {
-      console.error("Camera/mic access failed:", error);
-      toast.error("Camera/mic access failed");
     }
+    const recorder = new MediaRecorder(stream);
+    chunksRef.current = [];
+    recorder.ondataavailable = (e) => chunksRef.current.push(e.data);
+    recorder.onstop = () => {
+      const blob = new Blob(chunksRef.current, { type: "video/webm" });
+      const url = URL.createObjectURL(blob);
+      setVideoBlob(blob);
+      setVideoUrl(url);
+      setPendingApproval(true);
+      stream.getTracks().forEach((t) => t.stop());
+    };
+    mediaRecorderRef.current = recorder;
+    recorder.start();
+    setRecording(true);
   };
 
   const stopRecording = () => {
-    if (mediaRecorderRef.current) {
-      mediaRecorderRef.current.stop();
-      setRecording(false);
-      if (videoRef.current?.srcObject) {
-        const tracks = videoRef.current.srcObject.getTracks();
-        tracks.forEach((track) => track.stop());
-        videoRef.current.srcObject = null;
-      }
-    }
+    mediaRecorderRef.current?.stop();
+    setRecording(false);
+  };
+
+  const discardVideo = () => {
+    setVideoBlob(null);
+    setVideoUrl("");
+    setPendingApproval(false);
+  };
+
+  const uploadVideo = async () => {
+    if (!videoBlob || !name) return alert("Missing name or video");
+    const formData = new FormData();
+    formData.append("file", videoBlob);
+    formData.append("name", name);
+    // TODO: connect to real API
+    setPendingApproval(false);
+    alert("✅ Video upload simulated");
   };
 
   const handleSubmit = async () => {
-    if (!review || !name || !consent) {
-      toast.error("Please complete all required fields.");
-      return;
-    }
-
+    if (!name || !review || !consent) return alert("Please fill required fields");
     const formData = new FormData();
     formData.append("name", name);
     formData.append("review", review);
-    formData.append("videoUrl", videoUrl);
-    formData.append("consent", consent);
     formData.append("contact", contact);
     formData.append("social", social);
     formData.append("location", location);
-    formData.append("privateSubmit", privateSubmit);
+    formData.append("consent", String(consent));
+    formData.append("privateSubmit", String(privateSubmit));
     if (documentFile) formData.append("document", documentFile);
-
-    try {
-      await fetch("/api/review", {
-        method: "POST",
-        body: formData,
-      });
-      setSubmitted(true);
-      toast.success("Review submitted successfully!");
-    } catch (error) {
-      console.error("Submission failed:", error);
-      toast.error("Failed to submit review.");
-    }
+    if (videoUrl) formData.append("videoUrl", videoUrl);
+    // TODO: connect to real API
+    setSubmitted(true);
+    alert("✅ Review submitted (simulated)");
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white p-6">
-      <form
-        className="w-full max-w-2xl bg-white border border-gray-200 shadow-xl rounded-lg p-8 space-y-6"
-        onSubmit={(e) => {
-          e.preventDefault();
-          handleSubmit();
-        }}
-      >
-        <h1 className="text-3xl font-bold text-center text-gray-800">Leave a Review</h1>
+    <>
+      <div className="min-h-screen flex items-center justify-center bg-transparent p-6">
+        <form
+          className="w-full max-w-2xl bg-white/80 backdrop-blur-md shadow-2xl rounded-xl p-8 space-y-6 border border-gray-200"
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSubmit();
+          }}
+        ></form>
+      </div>
+      <div className="min-h-screen bg-gray-50 flex justify-center items-start px-4 py-10">
+        <Card className="w-full max-w-2xl">
+          <CardContent>
+              <h1 className="text-2xl font-bold text-center mb-6">Leave a Review</h1>
 
-        {submitted ? (
-          <p className="text-green-600 text-center">Thank you for your review!</p>
-        ) : (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} required />
-              <Input placeholder="Contact (email or phone)" value={contact} onChange={(e) => setContact(e.target.value)} />
-              <Input placeholder="Social media / website" value={social} onChange={(e) => setSocial(e.target.value)} />
-            </div>
+              {submitted ? (
+                <p className="text-green-600 text-center">Thank you for your review!</p>
+              ) : (
+                <form className="space-y-6" onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSubmit();
+                }}>
+                  <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" required />
+                  <Input value={contact} onChange={(e) => setContact(e.target.value)} placeholder="Contact (optional)" />
+                  <Input value={social} onChange={(e) => setSocial(e.target.value)} placeholder="Social / Website (optional)" />
+                  <Textarea value={review} onChange={(e) => setReview(e.target.value)} placeholder="Write your review..." rows={5} required />
 
-            <Textarea
-              placeholder="Write your review here... (max 500 chars)"
-              rows={6}
-              maxLength={500}
-              value={review}
-              onChange={(e) => setReview(e.target.value)}
-              required
-            />
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Video Recording (optional)</label>
+                    <video
+                      ref={videoRef}
+                      src={videoUrl || undefined}
+                      autoPlay
+                      muted
+                      playsInline
+                      controls={!!videoUrl}
+                      className="w-full rounded border"
+                    />
+                    <div className="flex gap-4 mt-2">
+                      {!recording && !videoBlob && <Button type="button" onClick={startRecording}>🎥 Start Recording</Button>}
+                      {recording && <Button type="button" onClick={stopRecording}>⏹️ Stop</Button>}
+                      {pendingApproval && (
+                        <>
+                          <Button type="button" onClick={uploadVideo}>✅ Approve</Button>
+                          <Button type="button" onClick={discardVideo}>❌ Discard</Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
 
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Video (optional):</label>
-              <video ref={videoRef} autoPlay muted playsInline className="w-full max-h-64 border rounded" />
-              <div className="flex gap-2">
-                {!recording ? (
-                  <Button type="button" onClick={startRecording}>🎥 Start</Button>
-                ) : (
-                  <Button type="button" onClick={stopRecording}>⏹️ Stop</Button>
-                )}
-              </div>
-            </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Upload Document or Photo</label>
+                    <Input type="file" accept=".pdf,.doc,.docx,image/*" onChange={(e) => setDocumentFile(e.target.files[0])} />
+                  </div>
 
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Upload document (PDF/DOC):</label>
-              <Input type="file" accept=".pdf,.doc,.docx" onChange={(e) => setDocumentFile(e.target.files[0])} />
-            </div>
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <label className="inline-flex items-center gap-2">
+                      <Checkbox checked={consent} onChange={(e) => setConsent(e.target.checked)} />
+                      <span className="text-sm">I give permission to share this publicly</span>
+                    </label>
+                    <label className="inline-flex items-center gap-2">
+                      <Checkbox checked={privateSubmit} onChange={(e) => setPrivateSubmit(e.target.checked)} />
+                      <span className="text-sm">Only send to Gary</span>
+                    </label>
+                  </div>
 
-            <div className="flex items-start gap-2">
-              <Checkbox id="consent" checked={consent} onCheckedChange={() => setConsent(!consent)} />
-              <label htmlFor="consent" className="text-sm text-gray-700">I give permission to share this review publicly</label>
-            </div>
+                  <div className="text-xs text-gray-500 italic text-center">{location}</div>
 
-            <div className="flex items-start gap-2">
-              <Checkbox id="privateSubmit" checked={privateSubmit} onCheckedChange={() => setPrivateSubmit(!privateSubmit)} />
-              <label htmlFor="privateSubmit" className="text-sm text-gray-700">Only send to Gary (not public)</label>
-            </div>
-
-            <div className="text-xs text-gray-500 italic">{location}</div>
-
-            <Button className="w-full" type="submit" disabled={!review || !name || !consent}>
-              Submit Review
-            </Button>
-          </>
-        )}
-      </form>
-    </div>
+                  <Button type="submit" className="w-full text-lg py-3">
+                    Submit Review
+                  </Button>
+                </form>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+    </>
   );
 }
