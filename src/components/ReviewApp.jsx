@@ -17,7 +17,6 @@ export default function ReviewApp() {
   const [videoBlob, setVideoBlob] = useState(null);
   const [videoUrl, setVideoUrl] = useState("");
   const [recording, setRecording] = useState(false);
-  const [pendingApproval, setPendingApproval] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
   const videoRef = useRef(null);
@@ -48,7 +47,6 @@ export default function ReviewApp() {
       const url = URL.createObjectURL(blob);
       setVideoBlob(blob);
       setVideoUrl(url);
-      setPendingApproval(true);
       stream.getTracks().forEach((t) => t.stop());
     };
     mediaRecorderRef.current = recorder;
@@ -64,7 +62,6 @@ export default function ReviewApp() {
   const discardVideo = () => {
     setVideoBlob(null);
     setVideoUrl("");
-    setPendingApproval(false);
   };
 
   const uploadVideo = async () => {
@@ -73,7 +70,6 @@ export default function ReviewApp() {
     formData.append("file", videoBlob);
     formData.append("name", name);
     // TODO: connect to real API
-    setPendingApproval(false);
     alert("✅ Video upload simulated");
   };
 
@@ -90,25 +86,20 @@ export default function ReviewApp() {
     if (documentFile) formData.append("document", documentFile);
     if (videoUrl) formData.append("videoUrl", videoUrl);
     // TODO: connect to real API
+    if (videoBlob) {
+      await uploadVideo();
+    }
     setSubmitted(true);
     alert("✅ Review submitted (simulated)");
   };
 
   return (
     <>
-      <div className="min-h-screen flex items-center justify-center bg-transparent p-6">
-        <form
-          className="w-full max-w-2xl bg-white/80 backdrop-blur-md shadow-2xl rounded-xl p-8 space-y-6 border border-gray-200"
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSubmit();
-          }}
-        ></form>
-      </div>
       <div className="min-h-screen bg-gray-50 flex justify-center items-start px-4 py-10">
         <Card className="w-full max-w-2xl">
           <CardContent>
-              <h1 className="text-2xl font-bold text-center mb-6">Leave a Review</h1>
+            <div className="p-4 md:p-6">
+              <h1 className="text-3xl font-bold text-gray-800 text-center mb-6">Leave a Review</h1>
 
               {submitted ? (
                 <p className="text-green-600 text-center">Thank you for your review!</p>
@@ -117,10 +108,33 @@ export default function ReviewApp() {
                   e.preventDefault();
                   handleSubmit();
                 }}>
-                  <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" required />
-                  <Input value={contact} onChange={(e) => setContact(e.target.value)} placeholder="Contact (optional)" />
-                  <Input value={social} onChange={(e) => setSocial(e.target.value)} placeholder="Social / Website (optional)" />
-                  <Textarea value={review} onChange={(e) => setReview(e.target.value)} placeholder="Write your review..." rows={5} required />
+                  <Input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Your name"
+                    required
+                    className="rounded-md text-sm border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-gold"
+                  />
+                  <Input
+                    value={contact}
+                    onChange={(e) => setContact(e.target.value)}
+                    placeholder="Contact (optional)"
+                    className="rounded-md text-sm border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-gold"
+                  />
+                  <Input
+                    value={social}
+                    onChange={(e) => setSocial(e.target.value)}
+                    placeholder="Social / Website (optional)"
+                    className="rounded-md text-sm border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-gold"
+                  />
+                  <Textarea
+                    value={review}
+                    onChange={(e) => setReview(e.target.value)}
+                    placeholder="Write your review..."
+                    rows={5}
+                    required
+                    className="rounded-md text-sm border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-gold"
+                  />
 
                   <div>
                     <label className="block text-sm font-medium mb-1">Video Recording (optional)</label>
@@ -134,16 +148,31 @@ export default function ReviewApp() {
                       className="w-full rounded border"
                     />
                     <div className="flex gap-4 mt-2">
-                      {!recording && !videoBlob && <Button type="button" onClick={startRecording}>🎥 Start Recording</Button>}
-                      {recording && <Button type="button" onClick={stopRecording}>⏹️ Stop</Button>}
-                      {pendingApproval && (
+                      {!recording && !videoBlob && (
+                        <Button type="button" onClick={startRecording}>🎥 Start Recording</Button>
+                      )}
+                      {recording && (
+                        <Button type="button" onClick={stopRecording}>⏹️ Stop</Button>
+                      )}
+                      {videoBlob && !recording && (
                         <>
-                          <Button type="button" onClick={uploadVideo}>✅ Approve</Button>
-                          <Button type="button" onClick={discardVideo}>❌ Discard</Button>
+                          <Button type="button" onClick={startRecording}>🔁 Re-record</Button>
+                          <Button type="button" onClick={discardVideo}>🗑️ Delete</Button>
                         </>
                       )}
                     </div>
                   </div>
+
+                  {videoUrl && (
+                    <div className="mt-4">
+                      <label className="block text-sm font-medium mb-1">Preview</label>
+                      <video
+                        src={videoUrl}
+                        controls
+                        className="w-full rounded-md border border-gray-300"
+                      />
+                    </div>
+                  )}
 
                   <div>
                     <label className="block text-sm font-medium mb-1">Upload Document or Photo</label>
@@ -168,9 +197,10 @@ export default function ReviewApp() {
                   </Button>
                 </form>
               )}
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </>
   );
 }

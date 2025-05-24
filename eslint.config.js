@@ -5,6 +5,8 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 
 export default [
   { ignores: ['dist'] },
+
+  // ✅ React + browser config
   {
     files: ['**/*.{js,jsx}'],
     languageOptions: {
@@ -30,4 +32,14 @@ export default [
       ],
     },
   },
+
+  // ✅ Node-specific config (fixes `process` is not defined)
+  {
+    files: ['server.js', 'src/api/*.js'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: globals.node,
+    },
+  }
 ]
