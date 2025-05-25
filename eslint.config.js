@@ -35,7 +35,7 @@ export default [
 
   // ✅ Node-specific config (fixes `process` is not defined)
   {
-    files: ['server.js', 'src/api/*.js'],
+    files: ['server.js', 'src/api/*.js', 'src/pages/api/*.js'],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',

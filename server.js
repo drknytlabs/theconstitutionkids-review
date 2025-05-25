@@ -11,6 +11,7 @@ import fs from 'fs/promises';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(express.static(path.resolve(__dirname, 'dist')));
 app.use(express.json());
 
