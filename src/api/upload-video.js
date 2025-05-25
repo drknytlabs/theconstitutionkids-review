@@ -33,7 +33,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "No video file uploaded" });
     }
 
-    const rawName = uploadedFile.originalFilename || "uploaded-video.webm";
+    const rawName = uploadedFile?.originalFilename || `upload-${Date.now()}.webm`;
     const baseName = path.parse(rawName).name.replace(/\W+/g, "-");
     const newFileName = `${Date.now()}-${baseName}.webm`;
     const newPath = path.join("uploads", newFileName);

@@ -24,13 +24,20 @@ app.get('/api/reviews', async (req, res) => {
   const files = await fs.readdir(dirPath);
 
   const reviews = await Promise.all(
-    files.map(async (file) => {
-      const content = await fs.readFile(path.join(dirPath, file), 'utf-8');
-      return JSON.parse(content);
-    })
+    files
+      .filter((file) => file.endsWith('.json')) // ✅ Only JSON
+      .map(async (file) => {
+        try {
+          const content = await fs.readFile(path.join(dirPath, file), 'utf-8');
+          return JSON.parse(content);
+        } catch (err) {
+          console.error(`❌ Failed to parse ${file}:`, err.message);
+          return null;
+        }
+      })
   );
 
-  const publicReviews = reviews.filter((r) => r.consent === true);
+  const publicReviews = reviews.filter((r) => r && r.consent === true);
   res.json(publicReviews);
 });
 
@@ -40,12 +47,14 @@ app.get(/.*/, async (req, res) => {
     await fs.access(indexPath);
     res.sendFile(indexPath);
   } catch (error) {
-    console.error('index.html not found in dist:', error);
+    console.error('❌ Could not find index.html:', error);
     res.status(500).send('index.html not found. Please run "npm run build" first.');
   }
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = 3001;
+console.log("🧠 server.js is launching...");
+console.log("🟢 About to listen on port", PORT);
 
 app.listen(PORT, () => {
   console.log(`✅ Server running on http://localhost:${PORT}`);
