@@ -2,12 +2,6 @@ import formidable from 'formidable';
 import fs from 'fs/promises';
 import path from 'path';
 
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
-
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
@@ -53,19 +47,17 @@ export default async function handler(req, res) {
       localTime: flatten(fields.localTime),
       screenSize: flatten(fields.screenSize),
       referrer: flatten(fields.referrer),
+      id: Date.now().toString(),
+      likes: 0,
     };
-
-    data.id = Date.now().toString();
-    data.likes = 0;
-
     const rawName = flatten(fields.name) || 'anonymous';
     const safeName = rawName.replace(/\s/g, '-');
     const filename = `${data.id}-${safeName}.json`;
     const filepath = path.join('data', filename);
     await fs.writeFile(filepath, JSON.stringify(data, null, 2));
 
-    // Also append to public/data/reviews.json for frontend use
-    const publicDataPath = path.join(process.cwd(), 'public', 'data');
+    // Also append to data/reviews.json for frontend use
+    const publicDataPath = path.join(process.cwd(), 'data');
     const reviewsFilePath = path.join(publicDataPath, 'reviews.json');
 
     // Ensure directory and file exist

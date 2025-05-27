@@ -1,4 +1,4 @@
-import ReviewApp from "../components/ReviewApp";
+import ReviewApp from "@/components/ReviewApp";
 
 export default function Home() {
   return <ReviewApp />;

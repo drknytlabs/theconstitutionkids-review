@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect } from "react";
 import { FaYoutube, FaFacebook, FaInstagram } from "react-icons/fa";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent } from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Textarea } from "../components/ui/textarea";
 
 export default function ReviewApp() {
   const [name, setName] = useState("");
+  const [headline, setHeadline] = useState("");
   const [review, setReview] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -17,20 +18,75 @@ export default function ReviewApp() {
   const [consent, setConsent] = useState(false);
   const [privateSubmit, setPrivateSubmit] = useState(false);
   const [documentFile, setDocumentFile] = useState(null);
+  const [audioOnly, setAudioOnly] = useState(false);
   const [videoBlob, setVideoBlob] = useState(null);
   const [videoUrl, setVideoUrl] = useState("");
   const [recording, setRecording] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [looksGood, setLooksGood] = useState(false);
+
+  // --- Video pre-flight preview state ---
+  const [previewReady, setPreviewReady] = useState(false);
+  const [mediaStream, setMediaStream] = useState(null);
+
+  // --- Recording timer state and ref ---
+  const [recordingTime, setRecordingTime] = useState(0);
+  const timerRef = useRef(null);
 
   const videoRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
+  // --- Audio waveform refs ---
+  const canvasRef = useRef(null);
+  const audioContextRef = useRef(null);
+  const analyserRef = useRef(null);
+  const animationFrameRef = useRef(null);
+
+const resetRecordingState = () => {
+  setVideoBlob(null);
+  setVideoUrl("");
+  setRecordingTime(0);
+  clearInterval(timerRef.current);
+  timerRef.current = null;
+
+  if (videoRef.current) {
+    // Stop playback and disconnect stream
+    videoRef.current.pause();
+    videoRef.current.src = "";
+    videoRef.current.srcObject = null;
+
+    // Prevent multiple stacked listeners
+    videoRef.current.onvolumechange = null;
+
+    // Explicit mute setup
+    videoRef.current.volume = 0;
+  }
+
+  // Clear waveform if active
+  if (canvasRef.current) {
+    const ctx = canvasRef.current.getContext("2d");
+    if (ctx) {
+      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+    }
+  }
+    // --- Preview cleanup ---
+    if (mediaStream) {
+      mediaStream.getTracks().forEach((t) => t.stop());
+      setMediaStream(null);
+    }
+    setPreviewReady(false);
+  };
+
+  // Reset preview and recording state when switching between audio/video
+  useEffect(() => {
+    resetRecordingState();
+  }, [audioOnly]);
 
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude, longitude } = pos.coords;
-        setLocation(`Lat: ${latitude.toFixed(2)}, Lon: ${longitude.toFixed(2)}`);
+        setLocation(JSON.stringify({ lat: latitude, lon: longitude }));
       },
       (error) => console.warn("Geolocation error:", error),
       { enableHighAccuracy: true }
@@ -46,15 +102,81 @@ export default function ReviewApp() {
   };
 
   const startRecording = async () => {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    const constraints = audioOnly ? { audio: true } : { audio: true, video: true };
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
     if (videoRef.current) {
       videoRef.current.srcObject = stream;
     }
+    // If preview was running, stop it first.
+    if (mediaStream) {
+      mediaStream.getTracks().forEach((t) => t.stop());
+      setMediaStream(null);
+    }
+    setPreviewReady(false);
+    // --- Begin waveform setup ---
+    if (audioOnly && canvasRef.current) {
+      audioContextRef.current = new AudioContext();
+      const source = audioContextRef.current.createMediaStreamSource(stream);
+      analyserRef.current = audioContextRef.current.createAnalyser();
+      source.connect(analyserRef.current);
+      analyserRef.current.fftSize = 256;
+      const bufferLength = analyserRef.current.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext("2d");
+
+      const draw = () => {
+        animationFrameRef.current = requestAnimationFrame(draw);
+        analyserRef.current.getByteTimeDomainData(dataArray);
+
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+
+        const sliceWidth = canvas.width / bufferLength;
+        let x = 0;
+
+        for (let i = 0; i < bufferLength; i++) {
+          const v = dataArray[i] / 128.0;
+          // Visual clipping warning: highlight red if amplitude exceeds threshold
+          const y = (v * canvas.height) / 2;
+          if (v > 1.4) {
+            ctx.strokeStyle = '#f00'; // red for clipping
+          } else {
+            const hue = (Date.now() / 10) % 360;
+            ctx.strokeStyle = `hsl(${hue}, 100%, 60%)`;
+          }
+          if (i === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+          x += sliceWidth;
+        }
+
+        ctx.lineTo(canvas.width, canvas.height / 2);
+        ctx.stroke();
+      };
+      draw();
+    }
+    // --- End waveform setup ---
+    // --- Begin recording timer setup ---
+    setRecordingTime(0);
+    timerRef.current = setInterval(() => {
+      setRecordingTime((prev) => prev + 1);
+    }, 1000);
+    // --- End recording timer setup ---
     const recorder = new MediaRecorder(stream);
     chunksRef.current = [];
     recorder.ondataavailable = (e) => chunksRef.current.push(e.data);
     recorder.onstop = () => {
-      const blob = new Blob(chunksRef.current, { type: "video/webm" });
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+      const blob = new Blob(chunksRef.current, {
+        type: audioOnly ? "audio/webm" : "video/webm"
+      });
       const url = URL.createObjectURL(blob);
       if (videoRef.current) {
         videoRef.current.srcObject = null;
@@ -63,6 +185,11 @@ export default function ReviewApp() {
       setVideoBlob(blob);
       setVideoUrl(url);
       stream.getTracks().forEach((t) => t.stop());
+      // --- Clean up waveform on stop ---
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+        cancelAnimationFrame(animationFrameRef.current);
+      }
     };
     mediaRecorderRef.current = recorder;
     recorder.start();
@@ -75,36 +202,51 @@ export default function ReviewApp() {
     setRecording(true);
   };
 
-  const stopRecording = () => {
-    mediaRecorderRef.current?.stop();
-    setRecording(false);
-  };
-
-
-
-  const uploadVideo = async () => {
-  if (!videoBlob || !name) return null;
-
-  const formData = new FormData();
-  const safeFilename = `${name.replace(/\s+/g, "-")}-${Date.now()}.webm`;
-  formData.append("file", videoBlob, safeFilename);
-  formData.append("name", name);
-
+  // --- Video pre-flight preview for video mode ---
+  const startPreview = async () => {
   try {
-    const response = await fetch("/api/upload-video", {
-      method: "POST",
-      body: formData,
-    });
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
 
-    if (!response.ok) {
-      throw new Error("Failed to upload video");
+    if (!stream || !stream.getVideoTracks().length) {
+      throw new Error("🎥 Camera access granted, but no video track found.");
     }
 
-    const data = await response.json();
-    return data.url; // ✅ return video URL
+    setMediaStream(stream);
+
+    if (videoRef.current) {
+      videoRef.current.srcObject = stream;
+
+      // Give DOM time to bind stream
+      setTimeout(() => {
+        const track = stream.getVideoTracks()[0];
+        if (!track || track.readyState !== "live") {
+          alert("❌ Camera stream failed to initialize properly.");
+          console.warn("🛑 Video track state:", track?.readyState);
+          resetRecordingState();
+          return;
+        }
+
+        // Optional: deeper visual check
+        const canvas = document.createElement("canvas");
+        canvas.width = videoRef.current.videoWidth;
+        canvas.height = videoRef.current.videoHeight;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+        const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+
+        const hasImage = pixels.some(channel => channel !== 0);
+        if (!hasImage) {
+          alert("❌ Video preview isn't displaying real frames. Something’s broken.");
+          resetRecordingState();
+        }
+      }, 500);
+    }
+
+    setPreviewReady(true);
+    setLooksGood(false); // Reset confirmation on new preview
   } catch (error) {
-    console.error("Video upload error:", error);
-    return null;
+    console.error("Preview stream error:", error);
+    alert("❌ Failed to access camera. Check permissions or device settings.");
   }
 };
 
@@ -120,7 +262,7 @@ export default function ReviewApp() {
   };
 
   const handleSubmit = async () => {
-    if (!name || !review || (!consent && !privateSubmit)) {
+    if (!name || !headline || !review || (!consent && !privateSubmit)) {
       alert("Please fill all required fields and select how to share your review.");
       return;
     }
@@ -138,6 +280,7 @@ export default function ReviewApp() {
     }
     const formData = new FormData();
     formData.append("name", name);
+    formData.append("headline", headline);
     formData.append("review", review);
     formData.append("phone", phone);
     formData.append("email", email);
@@ -191,10 +334,32 @@ export default function ReviewApp() {
     setSubmitted(true);
   };
 
+  const [imagePreviewUrl, setImagePreviewUrl] = useState(null);
+
+  // When documentFile changes, create and clean up the preview URL
+  useEffect(() => {
+    if (documentFile && documentFile.type?.startsWith('image/')) {
+      const url = URL.createObjectURL(documentFile);
+      setImagePreviewUrl(url);
+      return () => {
+        URL.revokeObjectURL(url);
+      };
+    } else {
+      setImagePreviewUrl(null);
+    }
+  }, [documentFile]);
+
+  // Clean up videoUrl blob
+  useEffect(() => {
+    return () => {
+      if (videoUrl) URL.revokeObjectURL(videoUrl);
+    };
+  }, [videoUrl]);
+
   return (
     <>
       <div className="min-h-screen bg-gray-50 flex justify-center items-start px-4 py-10">
-        <Card className="w-full max-w-2xl">
+        <Card className="w-full max-w-2xl"> 
           <CardContent>
             <div className="p-4 md:p-6">
               {!submitted && (
@@ -235,6 +400,12 @@ export default function ReviewApp() {
                   e.preventDefault();
                   handleSubmit();
                 }}>
+                  <Input
+                    value={headline}
+                    onChange={(e) => setHeadline(e.target.value)}
+                    placeholder="Headline for your review (e.g. A game-changer!)"
+                    className="rounded-md text-sm border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-gold"
+                  />
                   <Input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
@@ -310,40 +481,150 @@ export default function ReviewApp() {
                       </div>
                     </div>
                   </div>
+                  <label className="block text-sm font-medium mb-1">In-Depth Review</label>
                   <Textarea
                     value={review}
                     onChange={(e) => setReview(e.target.value)}
-                    placeholder="Write your review..."
+                    placeholder="Write your detailed thoughts here..."
                     rows={5}
                     required
                     className="rounded-md text-sm border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-gold"
                   />
 
                   <div>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={audioOnly}
+                        onChange={() => setAudioOnly(!audioOnly)}
+                      />
+                      <span className="text-sm">🎧 Record audio only</span>
+                    </label>
                     <label className="block text-sm font-medium mb-1">Video Recording (optional)</label>
                     <div className="relative w-full border rounded-md overflow-hidden bg-black">
-                      <video
-                        ref={videoRef}
-                        src={videoUrl || undefined}
-                        autoPlay
-                        muted
-                        playsInline
-                        controls={!!videoUrl}
-                        className="w-full h-64 object-contain"
-                      />
+                      {/* --- Pre-flight preview UI for video mode --- */}
+                      {!audioOnly && !recording && !videoBlob && !previewReady && (
+                        <div className="text-center space-y-4 p-4 border rounded-md bg-gray-100 mt-4">
+                          <p className="font-semibold text-lg">🎬 Ready to Record?</p>
+                          <p className="text-sm text-gray-700">Let’s do a quick pre-flight check.</p>
+                          <ul className="text-left list-disc list-inside text-sm text-gray-600">
+                            <li>✅ Video check: Camera access</li>
+                            <li>✅ Audio check: Microphone ready</li>
+                            <li>💡 Tip: Just be yourself — you’re perfect for this.</li>
+                          </ul>
+                          <Button
+                            type="button"
+                            onClick={startPreview}
+                            aria-label="Start Camera"
+                            disabled={recording}
+                          >
+                            Start Camera
+                          </Button>
+                        </div>
+                      )}
+                      {!audioOnly && !recording && !videoBlob && previewReady && (
+                        <div className="flex flex-col items-center gap-4">
+                          <video
+                            ref={videoRef}
+                            autoPlay
+                            muted
+                            playsInline
+                            className="w-full h-64 object-contain"
+                            aria-label="Camera preview"
+                          />
+                          {!looksGood ? (
+                            <Button
+                              type="button"
+                              onClick={() => setLooksGood(true)}
+                              aria-label="Looks good, enable recording"
+                              disabled={recording}
+                            >
+                              👍 Looks good!
+                            </Button>
+                          ) : (
+                            <Button
+                              type="button"
+                              onClick={startRecording}
+                              aria-label="Start Recording"
+                              disabled={recording}
+                            >
+                              🎥 Start Recording
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                      {audioOnly && !recording && !videoBlob && (
+                        <Button
+                          type="button"
+                          onClick={startRecording}
+                          aria-label="Start Audio Recording"
+                          disabled={recording}
+                        >
+                          🎤 Start Recording
+                        </Button>
+                      )}
+                      {audioOnly && videoUrl && (
+                        <audio
+                          src={videoUrl}
+                          controls
+                          className="w-full mt-2"
+                          aria-label="Audio preview"
+                        />
+                      )}
+                      {!audioOnly && videoUrl && (
+                        <video
+                          ref={videoRef}
+                          src={videoUrl}
+                          autoPlay
+                          muted
+                          playsInline
+                          controls
+                          className="w-full h-64 object-contain"
+                          aria-label="Video preview"
+                        />
+                      )}
+                      {/* Live waveform meter */}
+                      {recording && (
+                        <div>
+                          <canvas
+                            ref={canvasRef}
+                            width={600}
+                            height={80}
+                            className="mt-2 w-full bg-black rounded shadow"
+                            aria-label="Live audio waveform"
+                          />
+                        </div>
+                      )}
                     </div>
-                  <div className="flex gap-4 mt-2">
-                    {!recording && !videoBlob && (
-                      <Button type="button" onClick={startRecording}>🎥 Start Recording</Button>
-                    )}
+                    {/* Recording timer display */}
                     {recording && (
-                      <Button type="button" onClick={stopRecording}>⏹️ Stop</Button>
+                      <p className="text-center text-sm text-gray-600 mt-2">
+                        ⏱️ Recording: {recordingTime}s
+                      </p>
                     )}
-                    {videoBlob && !recording && (
-                      <Button type="button" onClick={startRecording}>🔁 Re-record</Button>
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1 italic">Note: Video recordings are limited to 5 minutes.</p>
+                    <div className="flex gap-4 mt-2">
+                      {/* Only show Start Recording after Looks Good is confirmed */}
+                      {/* (Handled above in the previewReady block) */}
+                      {recording && (
+                        <Button
+                          type="button"
+                          onClick={stopRecording}
+                          aria-label="Stop Recording"
+                        >
+                          ⏹️ Stop
+                        </Button>
+                      )}
+                      {videoBlob && !recording && (
+                        <Button
+                          type="button"
+                          onClick={startRecording}
+                          aria-label="Re-record"
+                        >
+                          🔁 Re-record
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1 italic">Note: Video recordings are limited to 5 minutes.</p>
                   </div>
 
                   {/* Video preview now integrated above */}
@@ -355,9 +636,9 @@ export default function ReviewApp() {
                       console.log("Selected document:", file);
                       setDocumentFile(file);
                     }} />
-                    {documentFile && documentFile.type.startsWith('image/') && (
+                    {documentFile && documentFile.type.startsWith('image/') && imagePreviewUrl && (
                       <img
-                        src={URL.createObjectURL(documentFile)}
+                        src={imagePreviewUrl}
                         alt="Preview"
                         className="mt-2 max-h-48 rounded"
                       />
@@ -366,6 +647,9 @@ export default function ReviewApp() {
 
                   <div className="space-y-2">
                     <label className="block font-semibold text-sm">How should we share this?</label>
+                    <p className="text-xs text-gray-500 italic mb-1">
+                      Choose how you'd like your review shared. By posting publicly, you grant DRK NYT Labs permission to display your submission on the review wall.
+                    </p>
                     <label className="flex items-center gap-2">
                       <input
                         type="radio"
@@ -376,6 +660,7 @@ export default function ReviewApp() {
                           setConsent(true);
                           setPrivateSubmit(false);
                         }}
+                        required={!consent && !privateSubmit}
                       />
                       <span className="text-sm">✅ Post publicly on the website</span>
                     </label>
@@ -389,6 +674,7 @@ export default function ReviewApp() {
                           setConsent(false);
                           setPrivateSubmit(true);
                         }}
+                        required={!consent && !privateSubmit}
                       />
                       <span className="text-sm">🔒 Only share with Gary privately</span>
                     </label>
