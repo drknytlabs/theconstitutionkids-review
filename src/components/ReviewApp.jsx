@@ -204,51 +204,59 @@ const resetRecordingState = () => {
 
   // --- Video pre-flight preview for video mode ---
   const startPreview = async () => {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
 
-    if (!stream || !stream.getVideoTracks().length) {
-      throw new Error("🎥 Camera access granted, but no video track found.");
+      if (!stream || !stream.getVideoTracks().length) {
+        throw new Error("🎥 Camera access granted, but no video track found.");
+      }
+
+      setMediaStream(stream);
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+
+        // Give DOM time to bind stream
+        setTimeout(() => {
+          const track = stream.getVideoTracks()[0];
+          if (!track || track.readyState !== "live") {
+            alert("❌ Camera stream failed to initialize properly.");
+            console.warn("🛑 Video track state:", track?.readyState);
+            resetRecordingState();
+            return;
+          }
+
+          // Optional: deeper visual check
+          const canvas = document.createElement("canvas");
+          canvas.width = videoRef.current.videoWidth;
+          canvas.height = videoRef.current.videoHeight;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+          const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+
+          const hasImage = pixels.some(channel => channel !== 0);
+          if (!hasImage) {
+            alert("❌ Video preview isn't displaying real frames. Something’s broken.");
+            resetRecordingState();
+          }
+        }, 500);
+      }
+
+      setPreviewReady(true);
+      setLooksGood(false); // Reset confirmation on new preview
+    } catch (error) {
+      console.error("🚨 Camera access error:", error);
+      if (window.location.protocol !== "https:") {
+        alert("❌ Camera access blocked. This site must be served over HTTPS to use the camera.");
+      } else if (error.name === "NotAllowedError") {
+        alert("❌ Camera permission denied. Please check your browser's permissions for this site.");
+      } else if (error.name === "NotFoundError") {
+        alert("❌ No camera device found. Make sure a webcam is connected and enabled.");
+      } else {
+        alert(`❌ Camera error: ${error.message}`);
+      }
     }
-
-    setMediaStream(stream);
-
-    if (videoRef.current) {
-      videoRef.current.srcObject = stream;
-
-      // Give DOM time to bind stream
-      setTimeout(() => {
-        const track = stream.getVideoTracks()[0];
-        if (!track || track.readyState !== "live") {
-          alert("❌ Camera stream failed to initialize properly.");
-          console.warn("🛑 Video track state:", track?.readyState);
-          resetRecordingState();
-          return;
-        }
-
-        // Optional: deeper visual check
-        const canvas = document.createElement("canvas");
-        canvas.width = videoRef.current.videoWidth;
-        canvas.height = videoRef.current.videoHeight;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-        const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-
-        const hasImage = pixels.some(channel => channel !== 0);
-        if (!hasImage) {
-          alert("❌ Video preview isn't displaying real frames. Something’s broken.");
-          resetRecordingState();
-        }
-      }, 500);
-    }
-
-    setPreviewReady(true);
-    setLooksGood(false); // Reset confirmation on new preview
-  } catch (error) {
-    console.error("Preview stream error:", error);
-    alert("❌ Failed to access camera. Check permissions or device settings.");
-  }
-};
+  };
 
   const formatUrl = (platform, handle) => {
     const base = {
