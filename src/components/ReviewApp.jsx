@@ -364,6 +364,12 @@ const resetRecordingState = () => {
     };
   }, [videoUrl]);
 
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+      mediaRecorderRef.current.stop();
+      setRecording(false);
+    }
+  };
   return (
     <>
       <div className="min-h-screen bg-gray-50 flex justify-center items-start px-4 py-10">
@@ -702,9 +708,3 @@ const resetRecordingState = () => {
     </>
   );
 }
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
-      mediaRecorderRef.current.stop();
-      setRecording(false);
-    }
-  };
