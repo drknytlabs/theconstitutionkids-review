@@ -702,3 +702,9 @@ const resetRecordingState = () => {
     </>
   );
 }
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+      mediaRecorderRef.current.stop();
+      setRecording(false);
+    }
+  };
