@@ -1,4 +1,4 @@
- import { useState, useRef } from "react";
+import { useState, useRef } from "react";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import { Button } from "../components/ui/button";
@@ -54,9 +54,29 @@ export default function ReviewApp() {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    alert("✅ Review submitted!\n" + JSON.stringify({ name, review, social }));
+
+    if (!name || !review || !videoUrl) {
+      alert("❗ Please complete all fields and record a video.");
+      return;
+    }
+
+    const response = await fetch("/api/submit-review", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, review, social, videoUrl }),
+    });
+
+    if (response.ok) {
+      alert("✅ Review submitted!");
+      setName("");
+      setReview("");
+      setSocial("");
+      setVideoUrl("");
+    } else {
+      alert("❌ Submission failed. Please try again.");
+    }
   };
 
   return (
