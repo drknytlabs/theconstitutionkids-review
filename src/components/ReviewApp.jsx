@@ -102,7 +102,13 @@ export default function ReviewApp() {
         <Button type="submit">Submit Review</Button>
       </form>
 
-      <div className="space-y-2">
+      <div className="pt-4">
+        <a href="/reviews" className="text-blue-500 hover:underline text-sm">
+          📚 View All Reviews
+        </a>
+      </div>
+
+      <div className="space-y-2 pt-6">
         <h2 className="text-lg font-semibold">Record a Video</h2>
         {!recording ? (
           <Button onClick={startRecording}>🎥 Start Recording</Button>
