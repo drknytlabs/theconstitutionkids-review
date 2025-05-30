@@ -123,8 +123,8 @@ if (!process.env.PORT) {
 console.log(`ℹ️ Running in ${NODE_ENV} mode`);
 console.log(`ℹ️ Using PORT: ${PORT}`);
 
-const server = app.listen(PORT, () => {
-  console.log(`✅ Server running on http://localhost:${PORT}`);
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`✅ Server running on http://0.0.0.0:${PORT}`);
 });
 
 const shutdown = () => {
