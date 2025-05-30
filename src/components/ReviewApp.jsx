@@ -1,36 +1,46 @@
-import { useState, useRef } from "react";
+ import { useState, useRef } from "react";
+import { Input } from "../components/ui/input";
+import { Textarea } from "../components/ui/textarea";
+import { Button } from "../components/ui/button";
 
 export default function ReviewApp() {
   const [videoUrl, setVideoUrl] = useState("");
   const [recording, setRecording] = useState(false);
   const [elapsed, setElapsed] = useState(0);
+  const [name, setName] = useState("");
+  const [review, setReview] = useState("");
+  const [social, setSocial] = useState("");
+
   const videoRef = useRef(null);
   const timerRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const chunksRef = useRef([]);
 
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      const recorder = new MediaRecorder(stream);
-      const chunks = [];
+      videoRef.current.srcObject = stream;
 
-      recorder.ondataavailable = (e) => chunks.push(e.data);
+      const recorder = new MediaRecorder(stream);
+      chunksRef.current = [];
+
+      recorder.ondataavailable = (e) => chunksRef.current.push(e.data);
       recorder.onstop = () => {
-        const blob = new Blob(chunks, { type: "video/webm" });
+        const blob = new Blob(chunksRef.current, { type: "video/webm" });
         const url = URL.createObjectURL(blob);
         setVideoUrl(url);
+        videoRef.current.srcObject = null;
         stream.getTracks().forEach((t) => t.stop());
-        clearInterval(timerRef.current);
-        setRecording(false);
       };
+
+      mediaRecorderRef.current = recorder;
+      recorder.start();
 
       setRecording(true);
       setElapsed(0);
       timerRef.current = setInterval(() => {
         setElapsed((prev) => prev + 1);
       }, 1000);
-
-      recorder.start();
-      setTimeout(() => recorder.stop(), 3000); // short 3-second test
     } catch (err) {
       alert("❌ Media error: " + err.message);
     }
@@ -39,30 +49,64 @@ export default function ReviewApp() {
   const stopRecording = () => {
     clearInterval(timerRef.current);
     setRecording(false);
+    if (mediaRecorderRef.current?.state === "recording") {
+      mediaRecorderRef.current.stop();
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    alert("✅ Review submitted!\n" + JSON.stringify({ name, review, social }));
   };
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Simple Video Test</h1>
-      {!recording ? (
-        <button onClick={startRecording} className="bg-blue-500 text-white px-4 py-2 rounded">
-          🎥 Start Test Recording
-        </button>
-      ) : (
-        <button onClick={stopRecording} className="bg-red-500 text-white px-4 py-2 rounded">
-          ⏹ Stop
-        </button>
-      )}
-      {recording && <div className="text-lg text-red-600 font-mono">⏱ {elapsed}s</div>}
-      {videoUrl && (
+    <div className="p-6 max-w-2xl mx-auto space-y-4">
+      <h1 className="text-2xl font-bold mb-2">Leave a Review</h1>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Input
+          placeholder="Your Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+        <Textarea
+          placeholder="Your Review"
+          value={review}
+          onChange={(e) => setReview(e.target.value)}
+        />
+        <Input
+          placeholder="Instagram, TikTok, or Twitter link"
+          value={social}
+          onChange={(e) => setSocial(e.target.value)}
+        />
+        <Button type="submit">Submit Review</Button>
+      </form>
+
+      <div className="space-y-2">
+        <h2 className="text-lg font-semibold">Record a Video</h2>
+        {!recording ? (
+          <Button onClick={startRecording}>🎥 Start Recording</Button>
+        ) : (
+          <Button variant="destructive" onClick={stopRecording}>⏹ Stop</Button>
+        )}
+        {recording && (
+          <div className="text-red-600 font-mono text-sm">⏱ {elapsed}s</div>
+        )}
         <video
-          src={videoUrl}
-          controls
+          ref={videoRef}
           autoPlay
           muted
-          className="mt-4 w-full h-64 object-contain"
+          playsInline
+          className="w-full h-64 border rounded bg-black"
         />
-      )}
+        {videoUrl && (
+          <video
+            src={videoUrl}
+            controls
+            className="w-full h-64 border rounded mt-2"
+          />
+        )}
+      </div>
     </div>
   );
 }
