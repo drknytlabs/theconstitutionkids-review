@@ -1,4 +1,5 @@
-// tailwind.config.js — minimal
+import forms from '@tailwindcss/forms';
+import typography from '@tailwindcss/typography';
 
 export default {
   content: [
@@ -6,9 +7,22 @@ export default {
     './src/**/*.{js,jsx,ts,tsx}',
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        ravepurple: '#7c3aed',
+      },
+      fontFamily: {
+        sans: ['Inter', 'ui-sans-serif', 'system-ui'],
+      },
+      spacing: {
+        '72': '18rem',
+        '84': '21rem',
+        '96': '24rem',
+      },
+    },
   },
-  plugins: [],
+  plugins: [
+    forms,
+    typography,
+  ],
 };
-// tailwind.config.js — minimal
-// This file is used to configure Tailwind CSS for the project. Although, Unnecessary for the current setup, it can be useful for future styling needs.
