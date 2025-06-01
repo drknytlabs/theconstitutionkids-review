@@ -15,30 +15,16 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 
 const limiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minute
-  max: 20, // limit each IP to 20 requests per minute
+  windowMs: 1 * 60 * 1000,
+  max: 20,
 });
 app.use(limiter);
 
 app.use(morgan('dev'));
-
 await loadRoutes(app, 'src/api');
 
 app.use(helmet());
-const isDev = process.env.NODE_ENV !== 'production';
-
-const allowedOrigins = isDev
-  ? [
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'http://localhost:3002',
-      'http://localhost:5173',
-    ]
-  : [
-      'https://theconstitutionkids.com',
-      'http://theconstitutionkids.com',
-      'https://www.theconstitutionkids.com',
-    ];
+const allowedOrigins = process.env.CORS_ORIGIN?.split(',') || [];
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -63,7 +49,6 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(express.static(path.resolve(__dirname, 'dist')));
 app.use(express.json());
 
-// --- API: Get all public reviews ---
 app.get('/api/reviews', async (_req, res) => {
   const dirPath = path.resolve('data');
   let files;
@@ -91,7 +76,6 @@ app.get('/api/reviews', async (_req, res) => {
   res.json(publicReviews);
 });
 
-// --- SPA fallback: serve index.html ---
 app.get(/.*/, async (_req, res) => {
   const indexPath = path.resolve(__dirname, 'dist', 'index.html');
   try {
@@ -103,12 +87,10 @@ app.get(/.*/, async (_req, res) => {
   }
 });
 
-// --- Health check ---
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() });
 });
 
-// --- Global error handler ---
 app.use((err, req, res, _next) => {
   console.error('Unhandled error:', err);
   res.status(500).json({ error: 'Internal server error' });

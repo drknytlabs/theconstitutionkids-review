@@ -196,7 +196,9 @@ export default function ReviewApp() {
           <CardContent>
             <div className="p-4 md:p-6">
               {!submitted && (
-                <h1 className="text-3xl font-bold text-gray-800 text-center mb-6">Leave a Review</h1>
+                <><h1 className="text-3xl font-bold text-gray-800 text-center mb-6">Leave a Review</h1><div className="bg-fuchsia-700 text-white text-3xl p-8 rounded-xl shadow-lg">
+                  Tailwind is watching.
+                </div></>
               )}
 
               {submitted ? (

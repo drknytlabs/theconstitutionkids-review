@@ -1,0 +1,23 @@
+name: raveform-ai
+services:
+  - name: web
+    run_command: node server.js
+    envs:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3002
+      - key: OPENAI_API_KEY
+        scope: RUN_AND_BUILD_TIME
+        value: ${OPENAI_API_KEY}
+      - key: CORS_ORIGIN
+        value: https://theconstitutionkids.com
+    github:
+      repo: drknytlabs/theconstitutionkids-review
+      branch: main
+      deploy_on_push: true
+    http_port: 3002
+    routes:
+      - path: /
+    build_command: npm run build
+    source_dir: .
