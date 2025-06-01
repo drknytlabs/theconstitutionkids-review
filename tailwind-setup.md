@@ -1,10 +1,13 @@
 Tailwind Style Strategy — The Constitution Kids Project
 
-✔️ Framework: React + Vite
-✔️ Tailwind Setup: v4.1 "@import/tailwindcss/vite"
-✔️ Stylesheet: src/global.css
-✔️ CSS Directives:
+✔️ Framework: React + Vite  
+✔️ Tailwind Setup: v4.1  
+✔️ Stylesheet: src/global.css  
+✔️ CSS Directives:  
+@tailwind base;  
+@tailwind components;  
+@tailwind utilities;
 
-✔️ Linked in: /index.html via <link href="/src/index.css" />
-✔️ Avoid @tailwindcss/vite plugin (not compatible with all bundlers)
-✔️ Confirmed working as of [DATE]
+✔️ Imported in: main.jsx via `import './global.css'`  
+✔️ Plugin: `tailwindcss` included in `vite.config.js`  
+✔️ Confirmed working as of: 2025-06-01

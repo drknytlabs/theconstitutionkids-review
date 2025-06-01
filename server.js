@@ -6,36 +6,11 @@ dotenv.config();
 
 import loadRoutes from './utils/loadRoutes.js';
 import fs from 'fs/promises';
-import helmet from 'helmet';
-import cors from 'cors';
-import rateLimit from 'express-rate-limit';
-import morgan from 'morgan';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 
-const limiter = rateLimit({
-  windowMs: 1 * 60 * 1000,
-  max: 20,
-});
-app.use(limiter);
-
-app.use(morgan('dev'));
-app.use(helmet());
 app.use(express.json());
-
-const allowedOrigins = process.env.CORS_ORIGIN?.split(',').map(origin => origin.trim()) || [];
-
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.warn(`❌ CORS rejected: ${origin}`);
-      callback(new Error('Not allowed by CORS'));
-    }
-  }
-}));
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
