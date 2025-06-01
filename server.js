@@ -21,9 +21,9 @@ const limiter = rateLimit({
 app.use(limiter);
 
 app.use(morgan('dev'));
-await loadRoutes(app, 'src/api');
-
 app.use(helmet());
+app.use(express.json());
+
 const allowedOrigins = process.env.CORS_ORIGIN?.split(',') || [];
 
 app.use(cors({
@@ -37,17 +37,10 @@ app.use(cors({
   }
 }));
 
-process.on("unhandledRejection", (reason) => {
-  console.error("🧨 Unhandled Rejection:", reason);
-});
-
-process.on("uncaughtException", (err) => {
-  console.error("🔥 Uncaught Exception:", err);
-});
-
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(express.static(path.resolve(__dirname, 'dist')));
-app.use(express.json());
+
+await loadRoutes(app, 'src/api');
 
 app.get('/api/reviews', async (_req, res) => {
   const dirPath = path.resolve('data');
@@ -76,6 +69,10 @@ app.get('/api/reviews', async (_req, res) => {
   res.json(publicReviews);
 });
 
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok', time: new Date().toISOString() });
+});
+
 app.get(/.*/, async (_req, res) => {
   const indexPath = path.resolve(__dirname, 'dist', 'index.html');
   try {
@@ -85,10 +82,6 @@ app.get(/.*/, async (_req, res) => {
     console.error('index.html not found in dist:', error);
     res.status(500).send('index.html not found. Please run "npm run build" first.');
   }
-});
-
-app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', time: new Date().toISOString() });
 });
 
 app.use((err, req, res, _next) => {
@@ -119,3 +112,11 @@ const shutdown = () => {
 
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
+
+process.on("unhandledRejection", (reason) => {
+  console.error("🧨 Unhandled Rejection:", reason);
+});
+
+process.on("uncaughtException", (err) => {
+  console.error("🔥 Uncaught Exception:", err);
+});
