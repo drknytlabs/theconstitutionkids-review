@@ -4,6 +4,11 @@ export const method = "post";
 export const path = "/api/assist";
 
 export default async function handler(req, res) {
+  if (!process.env.OPENAI_API_KEY) {
+    console.error('❌ OPENAI_API_KEY is not defined');
+    return res.status(500).json({ error: 'Missing API key' });
+  }
+
   try {
     const { name, jobTitle, organization } = req.body;
 
