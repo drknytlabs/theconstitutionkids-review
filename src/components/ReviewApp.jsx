@@ -39,7 +39,23 @@ export default function ReviewApp() {
     if (phoneMatch?.[1]) setPhone(phoneMatch[1].trim());
     if (emailMatch?.[1]) setEmail(emailMatch[1].trim());
   };
+const handleAssist = async () => {
+  const response = await fetch('/api/assist', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, jobTitle, organization })
+  });
 
+  if (!response.ok) {
+    alert('Failed to fetch AI review suggestion');
+    return;
+  }
+
+  const data = await response.json();
+  if (data.reviewDraft) {
+    setReview(data.reviewDraft); // 💥 auto-fills the review box
+  }
+};
   const stopRecording = () => {
     mediaRecorderRef.current?.stop();
     setRecording(false);
@@ -322,7 +338,7 @@ export default function ReviewApp() {
                     required
                     className="rounded-md text-sm border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-gold"
                   />
-
+                  <Button type="button"className="text-sm"onClick={handleAssist}>✍️ Refine Review</Button>
                   <div>
                     <label className="block text-sm font-medium mb-1">Video Recording (optional)</label>
                     <div className="relative w-full border rounded-md overflow-hidden bg-black">
