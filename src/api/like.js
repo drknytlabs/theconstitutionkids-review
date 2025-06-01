@@ -1,7 +1,10 @@
 import fs from 'fs';
-import path from 'path';
+import nodePath from 'path';
 
-const reviewsFile = path.join(process.cwd(), 'data', 'reviews.json');
+export const method = 'post';
+export const path = '/api/like';
+
+const reviewsFile = nodePath.join(process.cwd(), 'data', 'reviews.json');
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {

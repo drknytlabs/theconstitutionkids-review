@@ -1,5 +1,3 @@
-// Uses node-fetch for OpenAI API calls – make sure it's installed npm install node-fetch@^3
-
 import fetch from "node-fetch";
 
 export const method = "post";

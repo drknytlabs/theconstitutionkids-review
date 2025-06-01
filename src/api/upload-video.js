@@ -1,13 +1,16 @@
 import formidable from "formidable";
 import fs from "fs/promises";
-import path from "path";
+import nodePath from "path";
 import fetch from "node-fetch";
 import FormData from "form-data";
+
+export const method = 'post';
+export const path = '/api/upload-video';
 
 async function transcribeWithWhisper(filePath) {
   const formData = new FormData();
   formData.append("file", await fs.readFile(filePath), {
-    filename: path.basename(filePath),
+    filename: nodePath.basename(filePath),
     contentType: "audio/webm",
   });
   formData.append("model", "whisper-1");
@@ -36,7 +39,7 @@ export default async function handler(req, res) {
 
   const form = formidable({
     multiples: false,
-    uploadDir: path.resolve("data/uploads"),
+    uploadDir: nodePath.resolve("data/uploads"),
     keepExtensions: true,
   });
 
@@ -46,7 +49,6 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: "File upload failed" });
     }
 
-    // ✅ SAFETY CHECK
     const uploadedFile = Array.isArray(files.file) ? files.file[0] : files.file;
     const filePath = uploadedFile?.filepath;
     if (!filePath) {
@@ -55,11 +57,11 @@ export default async function handler(req, res) {
     }
 
     const rawName = uploadedFile?.originalFilename || `upload-${Date.now()}.webm`;
-    const baseName = path.parse(rawName).name.replace(/\W+/g, "-");
+    const baseName = nodePath.parse(rawName).name.replace(/\W+/g, "-");
     const newFileName = `${Date.now()}-${baseName}.webm`;
 
     await fs.mkdir("data/uploads", { recursive: true });
-    const newPath = path.join("data/uploads", newFileName);
+    const newPath = nodePath.join("data/uploads", newFileName);
 
     await fs.rename(filePath, newPath);
 

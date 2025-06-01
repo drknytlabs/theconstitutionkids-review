@@ -1,11 +1,9 @@
-// Uses node-fetch for OpenAI API calls – make sure it's installed npm install node-fetch@^3
-
 import fetch from "node-fetch";
 import { promises as fs } from "fs";
-import path from "path";
+import nodePath from "path";
 
 export const method = "post";
-export const apiPath = "/api/summarize";
+export const path = "/api/summarize";
 
 export default async function handler(req, res) {
   try {
@@ -44,9 +42,8 @@ ${text}`;
 
     const tags = tagsMatch ? tagsMatch[1].split(",").map(tag => tag.trim()) : [];
 
-    // If reviewId is provided, update the corresponding review JSON file with summary and tags
     if (reviewId) {
-      const reviewPath = path.join(process.cwd(), 'data', `${reviewId}.json`);
+      const reviewPath = nodePath.join(process.cwd(), 'data', `${reviewId}.json`);
       try {
         const reviewData = JSON.parse(await fs.readFile(reviewPath, 'utf-8'));
         reviewData.summary = summaryMatch ? summaryMatch[1] : "";
