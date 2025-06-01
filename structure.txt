@@ -1,0 +1,58 @@
+📁 theconstitutionkids-review
+├── 📄 .env
+├── 📄 .gitignore
+├── 📄 README.md
+├── 📄 app.yaml
+├── 📄 components.json
+├── 📁 data
+│   ├── 📄 reviews.json
+├── 📄 eslint.config.js
+├── 📄 generate-structure.js
+├── 📄 index.html
+├── 📄 init
+├── 📄 nohup.out
+├── 📄 package-lock.json
+├── 📄 package.json
+├── 📁 public
+│   ├── 📄 vite.svg
+├── 📄 server.js
+├── 📁 src
+│   ├── 📄 App.jsx
+│   ├── 📁 api
+│   │   ├── 📄 assist.js
+│   │   ├── 📄 like.js
+│   │   ├── 📄 review.js
+│   │   ├── 📄 summarize.js
+│   │   ├── 📄 upload-video.js
+│   ├── 📁 assets
+│   │   ├── 📄 react.svg
+│   ├── 📁 components
+│   │   ├── 📄 ReviewApp.jsx
+│   │   ├── 📄 ReviewWall.jsx
+│   │   ├── 📄 TopReviewHero.jsx
+│   │   ├── 📄 truth.jsx
+│   │   ├── 📁 ui
+│   │   │   ├── 📄 button.jsx
+│   │   │   ├── 📄 card.jsx
+│   │   │   ├── 📄 checkbox.tsx
+│   │   │   ├── 📄 input.jsx
+│   │   │   ├── 📄 textarea.jsx
+│   ├── 📁 lib
+│   │   ├── 📄 utils.ts
+│   ├── 📄 main.jsx
+│   ├── 📁 pages
+│   │   ├── 📁 api
+│   │   ├── 📄 index.jsx
+│   │   ├── 📄 reviews.jsx
+├── 📄 structure.txt
+├── 📁 styles
+│   ├── 📄 global.css
+├── 📄 tailwind-setup.md
+├── 📄 tailwind.config.js
+├── 📄 tsconfig.json
+├── 📁 uploads
+│   ├── 📄 j6ce5a96osftwiats42ytqfkr.png
+│   ├── 📄 ysahqg04yd2za2ne0hn7pq8us.png
+├── 📁 utils
+│   ├── 📄 loadRoutes.js
+├── 📄 vite.config.js
