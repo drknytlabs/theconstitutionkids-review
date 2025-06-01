@@ -1,6 +1,8 @@
 import formidable from 'formidable';
 import fs from 'fs/promises';
 import nodePath from 'path';
+import dotenv from 'dotenv';
+dotenv.config();
 
 export const method = 'post';
 export const path = '/api/review';
@@ -28,7 +30,6 @@ export default async function handler(req, res) {
       ? uploadedDoc.filepath.replace(/^uploads/, '/uploads')
       : null;
 
-    // Extract document URL path for frontend use
     const data = {
       name: flatten(fields.name),
       review: flatten(fields.review),
@@ -58,11 +59,9 @@ export default async function handler(req, res) {
     const filepath = nodePath.join('data', filename);
     await fs.writeFile(filepath, JSON.stringify(data, null, 2));
 
-    // Also append to data/reviews.json for frontend use
     const publicDataPath = nodePath.join(process.cwd(), 'data');
     const reviewsFilePath = nodePath.join(publicDataPath, 'reviews.json');
 
-    // Ensure directory and file exist
     await fs.mkdir(publicDataPath, { recursive: true });
     try {
       await fs.access(reviewsFilePath);
@@ -70,7 +69,6 @@ export default async function handler(req, res) {
       await fs.writeFile(reviewsFilePath, '[]', 'utf-8');
     }
 
-    // Append review
     const reviewsRaw = await fs.readFile(reviewsFilePath, 'utf-8');
     const reviews = JSON.parse(reviewsRaw);
     reviews.push(data);

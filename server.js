@@ -3,7 +3,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 dotenv.config();
-console.log("OPENAI_API_KEY loaded?", !!process.env.OPENAI_API_KEY);
 
 import loadRoutes from './utils/loadRoutes.js';
 import fs from 'fs/promises';
@@ -12,22 +11,20 @@ import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import morgan from 'morgan';
 
-const __dirname = path
-.dirname(fileURLToPath(import.meta.url));
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 
 const limiter = rateLimit({
   windowMs: 1 * 60 * 1000,
   max: 20,
 });
-app.use(express.static(path.resolve(__dirname, 'dist')));
 app.use(limiter);
 
 app.use(morgan('dev'));
 app.use(helmet());
 app.use(express.json());
 
-const allowedOrigins = process.env.CORS_ORIGIN?.split(',') || [];
+const allowedOrigins = process.env.CORS_ORIGIN?.split(',').map(origin => origin.trim()) || [];
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -41,6 +38,14 @@ app.use(cors({
 }));
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+const distPath = path.resolve(__dirname, 'dist');
+try {
+  await fs.access(distPath);
+} catch {
+  console.warn('⚠️ dist folder not found — did you run "npm run build"?');
+}
+app.use(express.static(distPath));
 
 await loadRoutes(app, 'src/api');
 
@@ -75,13 +80,7 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() });
 });
 
-app.get(/.*/, async (req, res, next) => {
-  const isStatic = req.path.startsWith('/assets') || req.path.startsWith('/uploads') || req.path.startsWith('/api');
-
-  if (isStatic) {
-    return next(); // Let static handler or API route take it
-  }
-
+app.get(/.*/, async (_req, res) => {
   const indexPath = path.resolve(__dirname, 'dist', 'index.html');
   try {
     await fs.access(indexPath);

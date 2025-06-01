@@ -1,11 +1,14 @@
+import dotenv from "dotenv";
+dotenv.config();
+
 import formidable from "formidable";
 import fs from "fs/promises";
 import nodePath from "path";
 import fetch from "node-fetch";
 import FormData from "form-data";
 
-export const method = 'post';
-export const path = '/api/upload-video';
+export const method = "post";
+export const path = "/api/upload-video";
 
 async function transcribeWithWhisper(filePath) {
   const formData = new FormData();
