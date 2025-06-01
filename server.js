@@ -73,7 +73,7 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() });
 });
 
-app.get('*', async (req, res, next) => {
+app.get(/.*/, async (_req, res, next) => {
   const isStatic = req.path.startsWith('/assets') || req.path.startsWith('/uploads') || req.path.startsWith('/api');
 
   if (isStatic) {
@@ -89,7 +89,6 @@ app.get('*', async (req, res, next) => {
     res.status(500).send('index.html not found. Please run "npm run build" first.');
   }
 });
-
 app.use((err, req, res, _next) => {
   console.error('Unhandled error:', err);
   res.status(500).json({ error: 'Internal server error' });
