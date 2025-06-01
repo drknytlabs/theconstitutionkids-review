@@ -18,6 +18,7 @@ const limiter = rateLimit({
   windowMs: 1 * 60 * 1000,
   max: 20,
 });
+app.use(express.static(path.resolve(__dirname, 'dist')));
 app.use(limiter);
 
 app.use(morgan('dev'));
@@ -38,7 +39,6 @@ app.use(cors({
 }));
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-app.use(express.static(path.resolve(__dirname, 'dist')));
 
 await loadRoutes(app, 'src/api');
 
@@ -73,7 +73,13 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() });
 });
 
-app.get(/.*/, async (_req, res) => {
+app.get('*', async (req, res, next) => {
+  const isStatic = req.path.startsWith('/assets') || req.path.startsWith('/uploads') || req.path.startsWith('/api');
+
+  if (isStatic) {
+    return next(); // Let static handler or API route take it
+  }
+
   const indexPath = path.resolve(__dirname, 'dist', 'index.html');
   try {
     await fs.access(indexPath);
