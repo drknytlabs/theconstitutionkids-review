@@ -1,16 +1,3 @@
-  // Handler for "Paste from Contact Card"
-  const handlePasteFromContactCard = () => {
-    const raw = prompt("Paste your contact info or vCard text below:");
-    if (!raw) return;
-
-    const nameMatch = raw.match(/FN:(.+)/i);
-    const phoneMatch = raw.match(/TEL[^:]*:(.+)/i);
-    const emailMatch = raw.match(/EMAIL[^:]*:(.+)/i);
-
-    if (nameMatch) setName(nameMatch[1].trim());
-    if (phoneMatch) setPhone(phoneMatch[1].trim());
-    if (emailMatch) setEmail(emailMatch[1].trim());
-  };
 import { useState, useRef, useEffect } from "react";
 import { FaYoutube, FaFacebook, FaInstagram } from "react-icons/fa";
 import { Card, CardContent } from "@/components/ui/card";
@@ -38,6 +25,25 @@ export default function ReviewApp() {
   const videoRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
+
+  // ✅ Safely defined after useState
+  const handlePasteFromContactCard = () => {
+    const raw = prompt("Paste your contact info or vCard text below:");
+    if (!raw) return;
+
+    const nameMatch = raw.match(/FN:(.+)/i);
+    const phoneMatch = raw.match(/TEL[^:]*:(.+)/i);
+    const emailMatch = raw.match(/EMAIL[^:]*:(.+)/i);
+
+    if (nameMatch?.[1]) setName(nameMatch[1].trim());
+    if (phoneMatch?.[1]) setPhone(phoneMatch[1].trim());
+    if (emailMatch?.[1]) setEmail(emailMatch[1].trim());
+  };
+
+  const stopRecording = () => {
+    mediaRecorderRef.current?.stop();
+    setRecording(false);
+  };
 
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
@@ -88,37 +94,32 @@ export default function ReviewApp() {
     setRecording(true);
   };
 
-  const stopRecording = () => {
-    mediaRecorderRef.current?.stop();
-    setRecording(false);
-  };
-
 
   const uploadVideo = async () => {
-  if (!videoBlob || !name) return null;
+    if (!videoBlob || !name) return null;
 
-  const formData = new FormData();
-  const safeFilename = `${name.replace(/\s+/g, "-")}-${Date.now()}.webm`;
-  formData.append("file", videoBlob, safeFilename);
-  formData.append("name", name);
+    const formData = new FormData();
+    const safeFilename = `${name.replace(/\s+/g, "-")}-${Date.now()}.webm`;
+    formData.append("file", videoBlob, safeFilename);
+    formData.append("name", name);
 
-  try {
-    const response = await fetch("/api/upload-video", {
-      method: "POST",
-      body: formData,
-    });
+    try {
+      const response = await fetch("/api/upload-video", {
+        method: "POST",
+        body: formData,
+      });
 
-    if (!response.ok) {
-      throw new Error("Failed to upload video");
+      if (!response.ok) {
+        throw new Error("Failed to upload video");
+      }
+
+      const data = await response.json();
+      return data.url; // ✅ return video URL
+    } catch (error) {
+      console.error("Video upload error:", error);
+      return null;
     }
-
-    const data = await response.json();
-    return data.url; // ✅ return video URL
-  } catch (error) {
-    console.error("Video upload error:", error);
-    return null;
-  }
-};
+  };
 
   const formatUrl = (platform, handle) => {
     const base = {
@@ -178,7 +179,6 @@ export default function ReviewApp() {
       formData.append("videoUrl", finalVideoUrl);
     }
 
-    // ✅ Submit review to backend
     const response = await fetch('/api/review', {
       method: 'POST',
       body: formData,
