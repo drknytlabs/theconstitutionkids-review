@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 dotenv.config();
+console.log("OPENAI_API_KEY loaded?", !!process.env.OPENAI_API_KEY);
 
 import loadRoutes from './utils/loadRoutes.js';
 import fs from 'fs/promises';
@@ -11,7 +12,8 @@ import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import morgan from 'morgan';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __dirname = path
+.dirname(fileURLToPath(import.meta.url));
 const app = express();
 
 const limiter = rateLimit({
